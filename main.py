@@ -1,5 +1,5 @@
 # 
-# Spotify + Youtube downloader
+# Spotify + YouTube Downloader
 #
 # 15/10/24
 # Coldphiz (c)
@@ -34,10 +34,8 @@ def download_album_cover(url, path):
 def download_song(url, path):
     track_info = key.track(url)
     track_name = sanitize_filename(track_info['name'])
-    artist_name = sanitize_filename(track_info['artists'][0]['name'])
     album_name = sanitize_filename(track_info['album']['name'])
-    search_query = f"{track_name} {artist_name} audio"
-    dest_file = os.path.join(path, f"{track_name} - {artist_name}.mp3")
+    dest_file = os.path.join(path, f"{track_name}.mp3")
 
     ydl_opts = {
         'format': 'bestaudio/best',
@@ -52,11 +50,14 @@ def download_song(url, path):
 
     try:
         with YoutubeDL(ydl_opts) as ydl:
+            search_query = f"{track_name} {track_info['artists'][0]['name']} audio"
             ydl.download([f"ytsearch:{search_query}"])
 
+        # Fallback if downloaded as .m4a
         if not os.path.exists(dest_file):
             dest_file = dest_file.replace('.mp3', '.m4a')
 
+        # Set metadata
         audio = eyed3.load(dest_file)
         audio.initTag()
         audio.tag.title = track_name
@@ -123,28 +124,24 @@ def download_playlist(url):
     # File to store paths to songs in the playlist
     song_paths_file = os.path.join(playlist_folder, "song_paths.txt")
 
-    # Retrieve albums from the playlist and download them
-    unproc_albums = playlist_info['tracks']
-    albums = []
+    # Track unique album IDs to avoid duplicate downloads
+    processed_album_ids = set()
 
-    # Gather unique albums from the playlist
-    while unproc_albums:
-        for item in unproc_albums['items']:
-            track = item['track']
+    # Download each unique album in the playlist
+    for item in playlist_info['tracks']['items']:
+        track = item['track']
+        album_id = track['album']['id']
+
+        if album_id not in processed_album_ids:
+            # Mark album as processed
+            processed_album_ids.add(album_id)
+
             album_name = track['album']['name']
-            album_id = track['album']['id']
             artist_name = track['album']['artists'][0]['name']
+            album_url = f"https://open.spotify.com/album/{album_id}"
 
-            # Avoid duplicate albums
-            if (album_name, album_id) not in albums:
-                albums.append((album_name, album_id, artist_name))
-
-                # Define album path based on artist and album
-                album_url = f"https://open.spotify.com/album/{album_id}"
-                album_path = os.path.join("./static/db/artists", sanitize_filename(artist_name), sanitize_filename(album_name))
-                
-                print(f"Downloading album: {album_name} by {artist_name}")
-                download_album(album_url)  # Download the album
+            print(f"Downloading album: {album_name} by {artist_name}")
+            download_album(album_url)  # Download the album
 
     # Write song paths to file from the playlist
     with open(song_paths_file, 'w') as f:
@@ -160,7 +157,12 @@ def download_playlist(url):
             # Check if the song file exists before writing
             if os.path.exists(song_file_path):
                 f.write(song_file_path + "\n")
+                print(f"Path written: {song_file_path}")
+            else:
+                print(f"File not found for path: {song_file_path}")
 
     print(f"Playlist '{playlist_name}' downloaded successfully with song paths saved in '{song_paths_file}'.")
 
-download_playlist("https://open.spotify.com/playlist/0bCtgmvlSZoZmIC50t9MO0?si=26927ff0b7e14541") 
+
+
+download_playlist("https://open.spotify.com/playlist/0bCtgmvlSZoZmIC50t9MO0?si=26927ff0b7e14541")

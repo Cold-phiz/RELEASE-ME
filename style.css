@@ -1,0 +1,24 @@
+body {
+    background-color: black;
+}
+
+#terminal-output {
+    position: fixed;
+    bottom: 0;
+    width: 100%;
+    color: white;
+    font-family: monospace;
+    padding: 10px;
+    display: flex;
+    flex-direction: column-reverse;
+}
+
+.terminal-line {
+    opacity: 1;
+    animation: fadeOut 5s ease forwards;
+}
+
+@keyframes fadeOut {
+    0% { opacity: 1; }
+    100% { opacity: 0; }
+}
