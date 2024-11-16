@@ -6,6 +6,7 @@
 #
 
 import os
+import json
 import logging
 import requests
 import spotipy
@@ -20,6 +21,7 @@ key = spotipy.Spotify(auth_manager=SpotifyClientCredentials(client_id='09c13e8f0
 def sanitize_filename(name):
     return name.translate(str.maketrans('', '', '/\\?%*:|"<>')).strip()[:100]
 
+
 # Download album cover
 def download_album_cover(url, path):
     try:
@@ -29,6 +31,29 @@ def download_album_cover(url, path):
             f.write(response.content)
     except Exception as e:
         print(f"Error downloading album cover: {e}")
+
+
+# Add entry to song list
+def add_entry(key, value):
+    file_path = "./db/song_list.json"
+    
+    try:
+        with open(file_path, "r") as f:
+            data = json.load(f)
+    except (FileNotFoundError, json.JSONDecodeError):
+        data = {}
+    
+    data[key] = value
+
+    try:
+        with open(file_path, "w") as f:
+            json.dump(data, f, indent=4)
+        print(f"Entry added: {key} -> {value}")
+    except Exception as e:
+        print(f"Error writing to {file_path}: {e}")
+
+
+
 
 # Download song
 def download_song(url, path):
@@ -65,8 +90,13 @@ def download_song(url, path):
         audio.tag.images.set(3, open(os.path.join(path, "album_cover.jpg"), 'rb').read(), 'image/jpeg')
         audio.tag.save(version=eyed3.id3.ID3_V2_3)
 
+        add_entry(track_name, dest_file)
+
     except Exception as e:
         print(f"Error downloading {track_name}: {e}")
+
+
+
 
 # Download album
 def download_album(url):
@@ -79,7 +109,7 @@ def download_album(url):
     sanitized_artist_name = sanitize_filename(artist_name)
     
     # Define album path in the new structure
-    album_path = os.path.join("./static/db/artists", sanitized_artist_name, sanitized_album_name)
+    album_path = os.path.join("./db/artists", sanitized_artist_name, sanitized_album_name)
 
     if os.path.exists(album_path):
         print(f"Album '{album_name}' by '{artist_name}' already exists in '{album_path}'. Skipping download.")
@@ -105,12 +135,15 @@ def download_album(url):
 
     print(f"Album '{album_name}' by '{artist_name}' downloaded successfully.")
 
+
+
+
 # Download playlist
 def download_playlist(url):
     playlist_info = key.playlist(url)
     playlist_name = playlist_info['name']
     sanitized_playlist_name = sanitize_filename(playlist_name)
-    playlist_folder = os.path.join("./static/db/playlists", sanitized_playlist_name)
+    playlist_folder = os.path.join("./db/playlists", sanitized_playlist_name)
 
     # Create the playlist directory
     os.makedirs(playlist_folder, exist_ok=True)
@@ -164,10 +197,12 @@ def download_playlist(url):
             artist_name = track['album']['artists'][0]['name']
 
             # Construct the song file path based on the album and artist
-            song_file_path = os.path.join("./static/db/artists", sanitize_filename(artist_name), sanitize_filename(album_name), f"{sanitize_filename(song_name)}.mp3")
+            song_file_path = os.path.join("./db/artists", sanitize_filename(artist_name), sanitize_filename(album_name), f"{sanitize_filename(song_name)}.mp3")
 
             # Check if the song file exists before writing
             if os.path.exists(song_file_path):
                 f.write(song_file_path + "\n")
 
     print(f"Playlist '{playlist_name}' downloaded successfully with song paths saved in '{song_paths_file}'.")
+
+download_album("https://open.spotify.com/album/0U28P0QVB1QRxpqp5IHOlH?si=vs2FAWAeQaqlTtYbIqHZWA")
