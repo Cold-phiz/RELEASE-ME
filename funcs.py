@@ -48,11 +48,26 @@ def add_entry(key, value):
     try:
         with open(file_path, "w") as f:
             json.dump(data, f, indent=4)
-        print(f"Entry added: {key} -> {value}")
     except Exception as e:
         print(f"Error writing to {file_path}: {e}")
 
 
+# Scan entries
+def scan_entry(query):
+    try:
+        with open("./db/song_list.json", "r") as f:
+            data = json.load(f)
+
+            # Convert the query to lowercase for case-insensitive matching
+            query = query.lower()
+
+            # Iterate through the keys and check if the query matches any part of the song title
+            for song, path in data.items():
+                if query in song.lower():
+                    return path
+            return "Error: Song not found."
+    except (FileNotFoundError, json.JSONDecodeError):
+        print("Error: no songs have been downloaded !!!TO BE EXPANDED!!!")
 
 
 # Download song
@@ -94,9 +109,6 @@ def download_song(url, path):
 
     except Exception as e:
         print(f"Error downloading {track_name}: {e}")
-
-
-
 
 # Download album
 def download_album(url):
@@ -205,4 +217,6 @@ def download_playlist(url):
 
     print(f"Playlist '{playlist_name}' downloaded successfully with song paths saved in '{song_paths_file}'.")
 
-download_album("https://open.spotify.com/album/0U28P0QVB1QRxpqp5IHOlH?si=vs2FAWAeQaqlTtYbIqHZWA")
+# download_album("https://open.spotify.com/album/0U28P0QVB1QRxpqp5IHOlH?si=vs2FAWAeQaqlTtYbIqHZWA")
+
+print(scan_entry("f"))
